@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:15-bullseye
+    env_file: docker/env/db
+    shm_size: 2g
+    volumes:
+      - ./docker/data/postgres:/var/lib/postgresql/data
+      - ./docker/conf/db/postgresql.conf:/etc/postgresql/postgresql.conf
+    command: -c "config_file=/etc/postgresql/postgresql.conf"
+
+  main:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: docker/env/main
+    volumes:
+      - .:/app
+    depends_on:
+      - db
