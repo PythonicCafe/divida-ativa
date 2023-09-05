@@ -146,6 +146,7 @@ if __name__ == "__main__":
     download_path = Path(__file__).parent / "data" / "download"
     if command == "download":
         url = "http://dadosabertos.pgfn.gov.br/"
+        # TODO: adicionar opção para baixar de outros trimestres
         trimestres = sorted(link_list(url))
         ultimo_tri = trimestres[-1]
         print(f"Baixando dados de: {ultimo_tri[0]}")

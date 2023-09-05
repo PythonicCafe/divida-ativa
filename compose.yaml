@@ -1,7 +1,7 @@
 services:
   db:
     image: postgres:15-bullseye
-    env_file: docker/env/db
+    env_file: docker/env/base
     shm_size: 2g
     volumes:
       - ./docker/data/postgres:/var/lib/postgresql/data
@@ -12,7 +12,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    env_file: docker/env/main
+    env_file: docker/env/base
     volumes:
       - .:/app
     depends_on:
