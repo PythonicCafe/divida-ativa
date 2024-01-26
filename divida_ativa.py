@@ -124,7 +124,6 @@ class DividaAtivaNaoPrevidenciario(TableConfig):
 def link_list(url):
     response = requests.get(url)
     tree = document_fromstring(response.text)
-    trimestres = []
     for link in tree.xpath("//li/a"):
         link_url = urljoin(url, link.xpath("./@href")[0])
         link_title = link.xpath(".//text()")[0].strip()
@@ -147,7 +146,11 @@ if __name__ == "__main__":
     if command == "download":
         url = "http://dadosabertos.pgfn.gov.br/"
         # TODO: adicionar opção para baixar de outros trimestres
-        trimestres = sorted(link_list(url))
+        trimestres = [
+            (link_title, link_url)
+            for link_title, link_url in sorted(link_list(url))
+            if "trimestre" in link_url.lower()
+        ]
         ultimo_tri = trimestres[-1]
         print(f"Baixando dados de: {ultimo_tri[0]}")
         if not download_path.exists():
