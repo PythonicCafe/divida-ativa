@@ -140,6 +140,7 @@ if __name__ == "__main__":
     import re
     import sys
 
+    REGEXP_TRIMESTRE = re.compile("^20[0-9]{2}-[1-4]$")
     default_download_path = Path(__file__).parent / "data" / "download"
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -152,12 +153,31 @@ if __name__ == "__main__":
         ),
     )
     parser_download.add_argument(
-        "--download-path", type=Path, default=default_download_path, help="Pasta onde os arquivos serão baixados"
+        "--base-download-path",
+        type=Path,
+        default=default_download_path,
+        help=(
+            "Pasta onde os arquivos serão baixados (uma pasta chamada `YYYY-T` será criada dentro dessa para "
+            "armazenar os arquivos desse trimestre)"
+        ),
     )
 
     parser_import = subparsers.add_parser("import")
     parser_import.add_argument(
-        "--download-path", type=Path, default=default_download_path, help="Pasta onde os arquivos foram baixados"
+        "--trimestre",
+        help=(
+            "Importa um trimestre específico (em vez do último), formato: `YYYY-T`, onde `YYYY` é o nome com 4 "
+            "dígitos e `T` é o número do trimestre (1, 2, 3 ou 4)"
+        ),
+    )
+    parser_import.add_argument(
+        "--base-download-path",
+        type=Path,
+        default=default_download_path,
+        help=(
+            "Pasta onde os arquivos foram baixados (uma pasta chamada `YYYY-T` precisa existir dentro dessa, contendo "
+            "os arquivos desse trimestre)"
+        ),
     )
     parser_import.add_argument(
         "--database-url", default=os.environ.get("DATABASE_URL"), help="URL de conexão para o banco postgres"
@@ -169,9 +189,8 @@ if __name__ == "__main__":
     command = args.command
 
     if command == "download":
-        trimestre, download_path = args.trimestre, args.download_path
-        download_path.mkdir(parents=True, exist_ok=True)
-        if trimestre and not re.match("^20[0-9]{2}-[1-4]$", trimestre):
+        trimestre, base_download_path = args.trimestre, args.base_download_path
+        if trimestre and not REGEXP_TRIMESTRE.match(trimestre):
             print(f"ERRO - Formato inválido para trimestre: {repr(trimestre)}", file=sys.stderr)
             sys.exit(1)
 
@@ -190,8 +209,10 @@ if __name__ == "__main__":
                 sys.exit(2)
         else:
             trimestre = sorted(trimestres.keys())[-1]
+        download_path = base_download_path / trimestre
+        download_path.mkdir(parents=True, exist_ok=True)
 
-        print(f"Baixando dados para o trimestre {trimestre}")
+        print(f"Baixando dados para o trimestre {trimestre} em {download_path}")
         downloader = Downloader.subclasses()["aria2c"](path=download_path)
         for link_title, link_url in link_list(trimestres[trimestre]):
             filename = Path(urlparse(link_url).path).name
@@ -199,10 +220,32 @@ if __name__ == "__main__":
         downloader.run()
 
     elif command == "import":
+        trimestre, base_download_path = args.trimestre, args.base_download_path
+        if not trimestre:
+            trimestres = sorted(
+                [
+                    item.name
+                    for item in base_download_path.glob("*")
+                    if REGEXP_TRIMESTRE.match(item.name)
+                ]
+            )
+            if not trimestres:
+                print(f"ERRO - Nenhum arquivo baixado foi detectado em {base_download_path}", file=sys.stderr)
+                sys.exit(3)
+            trimestre = trimestres[-1]
+        elif not REGEXP_TRIMESTRE.match(trimestre):
+            print(f"ERRO - Formato inválido para trimestre: {repr(trimestre)}", file=sys.stderr)
+            sys.exit(1)
+        download_path = base_download_path / trimestre
+        if not download_path.exists():
+            print(f"ERRO - Diretório onde os arquivos deveriam ter sido baixados não existe: {download_path}", file=sys.stderr)
+            sys.exit(4)
+
         for Table in (DividaAtivaFGTS, DividaAtivaPrevidenciario, DividaAtivaNaoPrevidenciario):
+            print(f"Importando dados do trimestre {trimestre} na tabela {Table.name}")
             table = Table()
             table.load(
-                args.download_path,
+                download_path,
                 args.database_url,
                 unlogged=args.unlogged,
                 access_method=args.access_method,
