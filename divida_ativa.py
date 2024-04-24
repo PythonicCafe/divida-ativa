@@ -77,7 +77,9 @@ class TableConfig:
         progress_bar.total = uncompressed_size
         rows_imported = 0
         for counter, (zf, files_infos) in enumerate(files_to_extract, start=1):
-            progress_bar.prefix = progress_bar.description = f"Importing {self.name} (ZIP {counter}/{len(files_to_extract)})"
+            progress_bar.prefix = progress_bar.description = (
+                f"Importing {self.name} (ZIP {counter}/{len(files_to_extract)})"
+            )
             for file_info in files_infos:
                 # TODO: check if table already exists/has rows before importing?
                 fobj = zf.open(file_info.filename)
@@ -98,7 +100,7 @@ class TableConfig:
 
 
 class DividaAtivaFGTS(TableConfig):
-    filename_patterns = ("Dados_abertos_FGTS.zip", )
+    filename_patterns = ("Dados_abertos_FGTS.zip",)
     inner_filename_pattern = "*.csv"
     has_header = True
     name = "divida_ativa_fgts_orig"
@@ -106,7 +108,7 @@ class DividaAtivaFGTS(TableConfig):
 
 
 class DividaAtivaPrevidenciario(TableConfig):
-    filename_patterns = ("Dados_abertos_Previdenciario.zip", )
+    filename_patterns = ("Dados_abertos_Previdenciario.zip",)
     inner_filename_pattern = "*.csv"
     has_header = True
     name = "divida_ativa_previdenciario_orig"
@@ -114,7 +116,7 @@ class DividaAtivaPrevidenciario(TableConfig):
 
 
 class DividaAtivaNaoPrevidenciario(TableConfig):
-    filename_patterns = ("Dados_abertos_Nao_Previdenciario.zip", )
+    filename_patterns = ("Dados_abertos_Nao_Previdenciario.zip",)
     inner_filename_pattern = "*.csv"
     has_header = True
     name = "divida_ativa_nao_previdenciario_orig"
@@ -131,11 +133,10 @@ def link_list(url):
             continue
         yield (link_title, link_url)
 
+
 if __name__ == "__main__":
     import argparse
     import os
-    import sys
-
 
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=["download", "import"])
