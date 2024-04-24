@@ -1,0 +1,2 @@
+# env for main service
+export DATABASE_URL="postgres://postgres:supersecret@db:5432/postgres"

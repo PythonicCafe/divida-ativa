@@ -5,3 +5,9 @@ psycopg2-binary
 requests
 requests-cache
 tqdm
+
+autoflake
+black
+flake8
+ipython
+isort

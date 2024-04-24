@@ -1,0 +1,6 @@
+# env for db service
+export POSTGRES_HOST=db
+export POSTGRES_PORT=5432
+export POSTGRES_USER=postgres
+export POSTGRES_PASSWORD=supersecret
+export POSTGRES_DB=postgres

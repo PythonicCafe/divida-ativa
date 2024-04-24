@@ -5,9 +5,10 @@
 .directory
 .sass-cache
 .vscode/
+collected-static/
 data/*
 docker/data
-collected-static/
+docker/env/*.local
 
 
 # Byte-compiled / optimized / DLL files

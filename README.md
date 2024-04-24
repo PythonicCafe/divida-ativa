@@ -20,7 +20,14 @@ Brasil.IO](https://brasil.io/doe/).
 
 ## Rodando
 
+Você precisará do [docker compose](https://docs.docker.com/compose/) e do [make](https://www.gnu.org/software/make/)
+para executar os comandos abaixo (a execução fora de container, em virtualenv Python, é possível, mas essa documentação
+não abordará essa maneira de execução).
+
 ```shell
-docker compose up -d
-docker compose exec main ./run.sh
+make build  # Constrói os containers
+make start  # Inicia o container do banco de dados (postgres)
+make run  # Executa o script de ETL dentro do container principal
 ```
+
+Execute `make help` para ver outros comandos disponíveis.
