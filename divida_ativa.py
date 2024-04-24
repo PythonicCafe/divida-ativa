@@ -137,42 +137,74 @@ def link_list(url):
 if __name__ == "__main__":
     import argparse
     import os
+    import re
+    import sys
 
+    default_download_path = Path(__file__).parent / "data" / "download"
     parser = argparse.ArgumentParser()
-    parser.add_argument("command", choices=["download", "import"])
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    parser_download = subparsers.add_parser("download")
+    parser_download.add_argument(
+        "--trimestre",
+        help=(
+            "Baixa um trimestre específico (em vez do último), formato: `YYYY-T`, onde `YYYY` é o nome com 4 dígitos "
+            "e `T` é o número do trimestre (1, 2, 3 ou 4)"
+        ),
+    )
+    parser_download.add_argument(
+        "--download-path", type=Path, default=default_download_path, help="Pasta onde os arquivos serão baixados"
+    )
+
+    parser_import = subparsers.add_parser("import")
+    parser_import.add_argument(
+        "--download-path", type=Path, default=default_download_path, help="Pasta onde os arquivos foram baixados"
+    )
+    parser_import.add_argument(
+        "--database-url", default=os.environ.get("DATABASE_URL"), help="URL de conexão para o banco postgres"
+    )
+    parser_import.add_argument("--unlogged", action="store_true", help="Cria a tabela no postgres como 'unlogged'")
+    parser_import.add_argument("--access-method", default="heap", help="Método de armazenamento da tabela no postgres:")
+    parser_import.add_argument("--no-drop", action="store_true", help="Não deleta a tabela antes de inserir os dados")
     args = parser.parse_args()
     command = args.command
 
-    download_path = Path(__file__).parent / "data" / "download"
     if command == "download":
+        trimestre, download_path = args.trimestre, args.download_path
+        download_path.mkdir(parents=True, exist_ok=True)
+        if trimestre and not re.match("^20[0-9]{2}-[1-4]$", trimestre):
+            print(f"ERRO - Formato inválido para trimestre: {repr(trimestre)}", file=sys.stderr)
+            sys.exit(1)
+
         url = "http://dadosabertos.pgfn.gov.br/"
-        # TODO: adicionar opção para baixar de outros trimestres
-        trimestres = [
-            (link_title, link_url)
-            for link_title, link_url in sorted(link_list(url))
-            if "trimestre" in link_url.lower()
-        ]
-        ultimo_tri = trimestres[-1]
-        print(f"Baixando dados de: {ultimo_tri[0]}")
-        if not download_path.exists():
-            download_path.mkdir(parents=True)
+        trimestres = {
+            item[0].replace("_trimestre_0", "-").replace("/", ""): item[1]
+            for item in link_list(url)
+            if "trimestre" in item[0]
+        }
+        if trimestre:
+            if trimestre not in trimestres:
+                print(
+                    f"ERRO - Trimestre não encontrado: {repr(trimestre)} (opções: {', '.join(trimestres.keys())})",
+                    file=sys.stderr,
+                )
+                sys.exit(2)
+        else:
+            trimestre = sorted(trimestres.keys())[-1]
+
+        print(f"Baixando dados para o trimestre {trimestre}")
         downloader = Downloader.subclasses()["aria2c"](path=download_path)
-        for link_title, link_url in link_list(ultimo_tri[1]):
+        for link_title, link_url in link_list(trimestres[trimestre]):
             filename = Path(urlparse(link_url).path).name
             downloader.add(Download(url=link_url, filename=filename))
         downloader.run()
 
     elif command == "import":
-        database_url = os.environ["DATABASE_URL"]
-        unlogged = False
-        drop_if_exists = True
-        access_method = "heap"
         for Table in (DividaAtivaFGTS, DividaAtivaPrevidenciario, DividaAtivaNaoPrevidenciario):
             table = Table()
             table.load(
-                download_path,
-                database_url,
-                unlogged=unlogged,
-                access_method=access_method,
-                drop=drop_if_exists,
+                args.download_path,
+                args.database_url,
+                unlogged=args.unlogged,
+                access_method=args.access_method,
+                drop=not args.no_drop,
             )

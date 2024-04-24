@@ -30,4 +30,13 @@ make start  # Inicia o container do banco de dados (postgres)
 make run  # Executa o script de ETL dentro do container principal
 ```
 
-Execute `make help` para ver outros comandos disponíveis.
+Para finalizar a execução do container postgres, execute `make stop`. Execute `make help` para ver outros comandos
+disponíveis.
+
+### Baixando/importando trimestres específicos
+
+Os dados estão disponíveis para vários trimestres, mas o comando `make run` baixa, importa e limpa os dados apenas para
+o último trimestre disponível. Para personalizar esse comportamento, execute `make bash` e, dentro do container,
+execute cada um dos comandos em `./run.sh` manualmente, passando a opção `--trimestre=YYYY-T` para o script
+`divida_ativa.py`. Para mais detalhes, veja as opções executando: `python divida_ativa.py download --help` e
+`python divida_ativa.py import --help`.
